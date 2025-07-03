@@ -43,10 +43,37 @@
         cursor: pointer;
         border: none;
       }
+
+      .btn-selected {
+        background-color: #3a4753 !important;
+      }
+
+      @keyframes numberCycle {
+        0% {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .number-cycle {
+        animation: numberCycle 0.1s ease-out;
+      }
     </style>
   </head>
-  <body class="bg-[#14191f] min-h-screen text-white">
-    <div class="flex flex-col justify-between min-h-screen relative">
+  <body
+    class="flex justify-center align-center bg-[#14191f] min-h-screen text-white"
+  >
+    <div
+      class="flex flex-col justify-between min-h-screen relative w-full max-w-md mx-auto"
+    >
       <!-- Header -->
       <div class="flex items-center bg-[#14191f] p-4 pb-2 justify-between">
         <div class="text-white flex size-12 items-center">
@@ -62,41 +89,45 @@
             ></path>
           </svg>
         </div>
-        <h2 class="text-lg font-bold text-center flex-1 pr-12">Game #12345</h2>
+        <h2 class="text-lg font-bold text-center flex-1 pr-12">Lambada</h2>
       </div>
 
       <!-- Result -->
-      <h1 id="result" class="text-white text-[96px] font-bold text-center py-6">
-        ?
-      </h1>
-
-      <!-- History -->
-      <div class="absolute top-36 right-0 px-4 w-16">
-        <div id="history" class="flex flex-col items-center gap-3 py-4"></div>
+      <div class="flex-grow flex items-center justify-center">
+        <h1
+          id="result"
+          class="text-white text-[clamp(48px,15vw,96px)] font-bold text-center py-6"
+        >
+          ?
+        </h1>
+        <!-- History -->
+        <div class="absolute top-8 right-0 px-4 w-16">
+          <div id="history" class="flex flex-col items-center gap-3 py-4"></div>
+        </div>
       </div>
 
       <!-- User Control Panel -->
-      <div>
-        <div class="flex gap-6 w-full max-w-5xl items-end px-4">
-          <label class="flex flex-col flex-1">
+      <div class="w-full">
+        <div class="flex gap-2 sm:gap-4 w-full items-end px-4">
+          <label class="flex flex-col flex-1 min-w-0">
             <p class="text-base font-medium pb-2 truncate">Balance</p>
             <div
               id="balanceDisplay"
-              class="text-white text-center rounded-xl h-14 flex items-center justify-center bg-[#2b3540]"
+              class="text-white text-center rounded-xl h-14 flex items-center justify-center bg-[#2b3540] truncate px-2"
             >
               $100.00
             </div>
           </label>
 
-          <label class="flex flex-col flex-1 relative">
-            <p class="text-base font-medium pb-2">Bet Amount</p>
+          <label class="flex flex-col flex-1 min-w-0 relative">
+            <p class="text-base font-medium pb-2 truncate">Bet Amount</p>
             <div
               class="flex items-center justify-center bg-[#2b3540] rounded-xl h-14"
               id="betWrapper"
             >
               <button
                 onclick="adjustBet(-1)"
-                class="w-10 h-full text-white text-xl"
+                class="w-8 sm:w-10 h-full text-white text-xl"
               >
                 -
               </button>
@@ -106,23 +137,23 @@
                 step="0.1"
                 min="0.1"
                 value="10"
-                class="w-20 text-center bg-transparent outline-none text-white border-none ring-0 focus:ring-0 focus:outline-none"
+                class="w-16 sm:w-20 text-center bg-transparent outline-none text-white border-none ring-0 focus:ring-0 focus:outline-none"
               />
 
               <button
                 onclick="adjustBet(1)"
-                class="w-10 h-full text-white text-xl"
+                class="w-8 sm:w-10 h-full text-white text-xl"
               >
                 +
               </button>
             </div>
           </label>
 
-          <label class="flex flex-col flex-1">
+          <label class="flex flex-col flex-1 min-w-0">
             <p class="text-base font-medium pb-2 truncate">Multiplier (x)</p>
             <div
               id="multiplierDisplay"
-              class="text-white text-center rounded-xl h-14 flex items-center justify-center bg-[#2b3540]"
+              class="text-white text-center rounded-xl h-14 flex items-center justify-center bg-[#2b3540] truncate px-2"
             >
               -
             </div>
@@ -137,7 +168,7 @@
             <div class="flex w-full items-center justify-between">
               <p class="text-base font-medium">Adjust Bet</p>
               <div
-                class="text-white text-center mb-4 px-2"
+                class="text-white text-center mb-4 px-2 whitespace-nowrap"
                 id="sidebarSliderValue"
               >
                 Number: 50
@@ -158,18 +189,20 @@
 
         <!-- Condition Buttons -->
         <!-- Less and More Buttons -->
-        <div class="flex flex-1 gap-4 flex-row px-4 py-3 justify-center">
+        <div
+          class="flex flex-1 gap-2 sm:gap-4 flex-row px-4 py-3 justify-center"
+        >
           <button
             onclick="setCondition('less')"
             id="btnLess"
-            class="min-w-[84px] w-full h-12 px-6 justify-center rounded-full bg-[#2b3540] text-white font-extrabold hover:bg-[#3a4753] transition-colors duration-200"
+            class="min-w-[84px] w-full h-12 px-2 sm:px-6 justify-center rounded-full bg-[#2b3540] text-white font-extrabold hover:bg-[#3a4753] transition-colors duration-200"
           >
             Less
           </button>
           <button
             onclick="setCondition('greater')"
             id="btnMore"
-            class="min-w-[84px] w-full h-12 px-6 justify-center rounded-full bg-[#2b3540] text-white font-extrabold hover:bg-[#3a4753] transition-colors duration-200"
+            class="min-w-[84px] w-full h-12 px-2 sm:px-6 justify-center rounded-full bg-[#2b3540] text-white font-extrabold hover:bg-[#3a4753] transition-colors duration-200"
           >
             More
           </button>
@@ -197,6 +230,7 @@
       let history = [];
       let condition = null;
       let sliderValue = 50;
+      let isAnimating = false;
 
       function updateBalanceDisplay() {
         document.getElementById(
@@ -266,10 +300,79 @@
           .classList.remove("border", "border-red-500");
       }
 
+      function animateNumberCycle(finalNumber, callback) {
+        const resultEl = document.getElementById("result");
+        isAnimating = true;
+        resultEl.textContent = "?";
+        resultEl.classList.remove(
+          "text-green-500",
+          "text-red-600",
+          "number-cycle"
+        );
+
+        // Start with a few fast numbers
+        let count = 0;
+        const totalCycles = 15 + Math.floor(Math.random() * 10); // 15-24 cycles
+        const startTime = Date.now();
+        const duration = 1500; // 1.5 seconds total
+
+        function updateNumber() {
+          if (!isAnimating) return;
+
+          const elapsed = Date.now() - startTime;
+          const progress = elapsed / duration;
+
+          if (progress >= 1) {
+            // Final number
+            resultEl.textContent = finalNumber;
+            resultEl.classList.add("number-cycle");
+            isAnimating = false;
+            callback();
+            return;
+          }
+
+          // Slow down as we approach the end
+          if (count < totalCycles) {
+            const randomNum = Math.floor(Math.random() * 99) + 1;
+            resultEl.textContent = randomNum;
+            resultEl.classList.add("number-cycle");
+
+            // Remove animation class after it completes to allow re-triggering
+            setTimeout(() => {
+              resultEl.classList.remove("number-cycle");
+            }, 100);
+
+            count++;
+
+            // Gradually slow down the animation
+            let delay;
+            if (count < totalCycles * 0.3) {
+              delay = 50 + Math.random() * 50; // Fast at first (50-100ms)
+            } else if (count < totalCycles * 0.7) {
+              delay = 100 + Math.random() * 100; // Then medium speed (100-200ms)
+            } else {
+              delay = 150 + Math.random() * 150; // Then slower (150-300ms)
+            }
+
+            setTimeout(updateNumber, delay);
+          } else {
+            // Show the final number with animation
+            resultEl.textContent = finalNumber;
+            resultEl.classList.add("number-cycle");
+            isAnimating = false;
+            callback();
+          }
+        }
+
+        updateNumber();
+      }
+
       function guessNumber() {
+        if (isAnimating) return;
+
         const betInput = document.getElementById("betAmount");
         let betAmount = parseFloat(betInput.value);
-        if (isNaN(betAmount) || betAmount < 1) return;
+        if (isNaN(betAmount)) return;
 
         if (betAmount > balance) {
           betAmount = balance;
@@ -282,12 +385,12 @@
 
         const result = getRandomNumber();
         const resultEl = document.getElementById("result");
-        resultEl.textContent = "?";
-        resultEl.classList.remove("text-green-500", "text-red-600");
 
-        setTimeout(() => {
-          resultEl.textContent = result;
+        // Disable button during animation
+        document.getElementById("btnGuess").disabled = true;
 
+        animateNumberCycle(result, () => {
+          // Animation complete - process the result
           const win =
             (condition === "greater" && result > sliderValue) ||
             (condition === "less" && result < sliderValue);
@@ -304,11 +407,15 @@
           }
 
           updateBalanceDisplay();
-        }, 100);
 
-        history.unshift(result);
-        if (history.length > 7) history.pop();
-        updateHistory();
+          // Re-enable button
+          document.getElementById("btnGuess").disabled = false;
+
+          // Add to history
+          history.unshift(result);
+          if (history.length > 7) history.pop();
+          updateHistory();
+        });
       }
 
       function updateHistory() {
