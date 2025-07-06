@@ -1,10 +1,72 @@
-const HOUSE_EDGE = 0.05;
+const HOUSE_EDGE = 0.025;
 let balance = 100;
 let history = [];
 let condition = null;
 let sliderValue = 50;
 let isAnimating = false;
 let confettiCanvas, particleCanvas, confettiCtx, particleCtx;
+let soundEnabled = true;
+
+// Game statistics
+let stats = {
+  wins: 0,
+  losses: 0,
+  totalWagered: 0,
+  biggestWin: 0,
+  currentStreak: 0,
+  maxStreak: 0,
+};
+
+// Audio context for fallback sounds
+let audioContext;
+try {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+} catch (e) {
+  console.warn("Web Audio API not supported");
+}
+
+// Sound functions
+function playTone(frequency, duration, type = "sine") {
+  if (!soundEnabled || !audioContext) return;
+
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.value = frequency;
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioContext.currentTime + duration
+    );
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+  } catch (e) {
+    console.warn("Audio error:", e);
+  }
+}
+
+function playWinSound() {
+  playTone(880, 0.5);
+  setTimeout(() => playTone(1318.51, 0.5), 200);
+}
+
+function playLoseSound() {
+  playTone(220, 1.5, "square");
+}
+
+function playClickSound() {
+  playTone(523.25, 0.1);
+}
+
+function playSlideSound() {
+  playTone(659.25, 0.05);
+}
 
 // Initialize canvases
 function initCanvases() {
@@ -119,18 +181,34 @@ function triggerParticles() {
 }
 
 function updateBalanceDisplay() {
-  const balanceElements = document.querySelectorAll("#balanceDisplay");
+  const balanceElements = [
+    ...document.querySelectorAll("#balanceDisplay"),
+    document.getElementById("balanceDisplayMobile"),
+    document.getElementById("mobileBalance"),
+  ];
+
   balanceElements.forEach((el) => {
-    el.textContent = `$${balance.toFixed(2)}`;
+    if (el) el.textContent = `$${balance.toFixed(2)}`;
   });
 
   // Pulse animation when balance updates
   balanceElements.forEach((el) => {
-    el.classList.add("animate__animated", "animate__pulse");
-    setTimeout(() => {
-      el.classList.remove("animate__animated", "animate__pulse");
-    }, 1000);
+    if (el) {
+      el.classList.add("animate__animated", "animate__pulse");
+      setTimeout(() => {
+        el.classList.remove("animate__animated", "animate__pulse");
+      }, 1000);
+    }
   });
+}
+
+function validateBetInput() {
+  const input = document.getElementById("betAmount");
+  let value = parseFloat(input.value) || 0;
+  value = Math.max(0.1, Math.min(balance, value));
+  value = Math.round(value * 10) / 10; // Ensure 1 decimal place
+  input.value = value.toFixed(1);
+  return value;
 }
 
 function getRandomNumber() {
@@ -138,6 +216,8 @@ function getRandomNumber() {
 }
 
 function adjustBet(delta) {
+  if (soundEnabled) playClickSound();
+
   const input = document.getElementById("betAmount");
   let value = parseFloat(input.value) || 0;
   value = Math.max(0.1, value + delta * 0.1);
@@ -154,6 +234,8 @@ function adjustBet(delta) {
 }
 
 function updateSliderValue(val) {
+  if (soundEnabled) playSlideSound();
+
   sliderValue = Number(val);
   document.getElementById("sliderValue").innerText = val;
   document.getElementById("sidebarSliderValue").innerText = `Number: ${val}`;
@@ -161,6 +243,8 @@ function updateSliderValue(val) {
 }
 
 function setCondition(newCondition) {
+  if (soundEnabled) playClickSound();
+
   condition = newCondition;
   document.getElementById("btnLess").classList.remove("btn-selected");
   document.getElementById("btnMore").classList.remove("btn-selected");
@@ -207,11 +291,16 @@ function updateMultiplier() {
     document.getElementById("multiplierDisplay").textContent = "-";
     return;
   }
+
   let chance = condition === "less" ? sliderValue : 100 - sliderValue;
   if (chance < 1) chance = 1;
+
   const rawMultiplier = 100 / chance;
-  const adjusted = (rawMultiplier * (1 - HOUSE_EDGE)).toFixed(2);
-  document.getElementById("multiplierDisplay").textContent = `${adjusted}x`;
+  let adjusted = rawMultiplier * (1 - HOUSE_EDGE);
+  adjusted = Math.max(1, adjusted); // Ensure it's not below 1
+
+  const displayValue = adjusted.toFixed(2);
+  document.getElementById("multiplierDisplay").textContent = `${displayValue}x`;
 
   // Color based on multiplier value
   const multiplierElement = document.getElementById("multiplierDisplay");
@@ -327,6 +416,8 @@ function animateNumberCycle(finalNumber, callback) {
 function guessNumber() {
   if (isAnimating) return;
 
+  if (soundEnabled) playClickSound();
+
   const betInput = document.getElementById("betAmount");
   let betAmount = parseFloat(betInput.value);
   if (isNaN(betAmount)) return;
@@ -366,18 +457,33 @@ function guessNumber() {
     let chance = condition === "less" ? sliderValue : 100 - sliderValue;
     const multiplier = (100 / chance) * (1 - HOUSE_EDGE);
 
+    // Update stats
+    stats.totalWagered += betAmount;
+
     if (win) {
-      balance += betAmount * (multiplier - 1);
+      const winAmount = betAmount * (multiplier - 1);
+      balance += winAmount;
+      stats.wins++;
+      stats.currentStreak++;
+      if (stats.currentStreak > stats.maxStreak)
+        stats.maxStreak = stats.currentStreak;
+      if (winAmount > stats.biggestWin) stats.biggestWin = winAmount;
+
       resultEl.classList.add("text-green-500", "result-win");
       resultGlow.style.background =
         "radial-gradient(circle, rgba(74, 222, 128, 0.5) 0%, transparent 70%)";
       triggerConfetti();
+      if (soundEnabled) playWinSound();
     } else {
       balance -= betAmount;
+      stats.losses++;
+      stats.currentStreak = 0;
+
       resultEl.classList.add("text-red-600", "result-lose");
       resultGlow.style.background =
         "radial-gradient(circle, rgba(239, 68, 68, 0.5) 0%, transparent 70%)";
       triggerParticles();
+      if (soundEnabled) playLoseSound();
     }
 
     updateBalanceDisplay();
@@ -395,6 +501,7 @@ function guessNumber() {
     addToHistory({ number: result, win });
   });
 }
+
 function addToHistory({ number, win }) {
   const container = document.getElementById("history");
   const maxItems = 7;
@@ -471,15 +578,92 @@ function updateHistory() {
   });
 }
 
-window.onload = () => {
+function showStats() {
+  document.getElementById("statWins").textContent = stats.wins;
+  document.getElementById("statLosses").textContent = stats.losses;
+  document.getElementById(
+    "statWagered"
+  ).textContent = `$${stats.totalWagered.toFixed(2)}`;
+  document.getElementById(
+    "statBigWin"
+  ).textContent = `$${stats.biggestWin.toFixed(2)}`;
+
+  const winRate =
+    stats.wins + stats.losses > 0
+      ? (stats.wins / (stats.wins + stats.losses)) * 100
+      : 0;
+  document.getElementById("statWinRate").textContent = `${winRate.toFixed(1)}%`;
+
+  document.getElementById("statsModal").classList.remove("hidden");
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const icon = document.querySelector("#soundToggle svg");
+  if (soundEnabled) {
+    icon.innerHTML =
+      '<path d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM32,96H72v64H32Z"></path>';
+  } else {
+    icon.innerHTML =
+      '<path d="M200,128a71.33,71.33,0,0,1-15.78,44.91,7.9,7.9,0,0,1-6.67,3.65,8,8,0,0,1-3.88-1,8.1,8.1,0,0,1-3.87-10.73,56.3,56.3,0,0,0,0-73.6,8.1,8.1,0,0,1,3.87-10.73,8,8,0,0,1,10.72,3.86A71.33,71.33,0,0,1,200,128Zm-16.46,88a8,8,0,0,1-6.67,3.65,8.23,8.23,0,0,1-3.88-1,8.1,8.1,0,0,1-3.87-10.73,104.44,104.44,0,0,0,0-159.74,8.1,8.1,0,0,1,3.87-10.73,8,8,0,0,1,10.72,3.86,120.44,120.44,0,0,1,0,183.52ZM32,96H72v64H32Z"></path>';
+  }
+}
+
+window.onload = function () {
+  // Initialize game elements
   initCanvases();
   updateBalanceDisplay();
   updateSliderValue(sliderValue);
   updateMultiplier();
+
+  // Disable guess button initially
   document.getElementById("btnGuess").disabled = true;
 
   // Add floating animation to the logo
   document.querySelector("h2").classList.add("float-animation");
+
+  // Set up input validation
+  document
+    .getElementById("betAmount")
+    .addEventListener("input", validateBetInput);
+  document
+    .getElementById("betAmount")
+    .addEventListener("blur", validateBetInput);
+
+  // Set up sound toggle - only if the element exists
+  const soundToggle = document.getElementById("soundToggle");
+  if (soundToggle) {
+    soundToggle.addEventListener("click", toggleSound);
+  }
+
+  // Set up keyboard controls
+  document.addEventListener("keydown", function (e) {
+    if (isAnimating) return;
+
+    switch (e.key) {
+      case "ArrowLeft":
+        setCondition("less");
+        break;
+      case "ArrowRight":
+        setCondition("greater");
+        break;
+      case "Enter":
+        if (!document.getElementById("btnGuess").disabled) {
+          guessNumber();
+        }
+        break;
+      case "ArrowUp":
+        adjustBet(1);
+        break;
+      case "ArrowDown":
+        adjustBet(-1);
+        break;
+      case "s":
+      case "S":
+        showStats();
+        break;
+    }
+  });
 };
 
 // Handle window resize

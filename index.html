@@ -33,6 +33,66 @@
       class="fixed top-0 left-0 w-full h-full pointer-events-none z-40"
     ></canvas>
 
+    <!-- Sound Elements -->
+    <audio
+      id="winSound"
+      src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="loseSound"
+      src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="clickSound"
+      src="https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="slideSound"
+      src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3"
+      preload="auto"
+    ></audio>
+
+    <!-- Stats Modal -->
+    <div
+      id="statsModal"
+      class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4"
+    >
+      <div class="bg-[#1e293b] rounded-xl p-6 max-w-md w-full">
+        <h3 class="text-xl font-bold mb-4">Game Statistics</h3>
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span>Wins:</span>
+            <span id="statWins">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Losses:</span>
+            <span id="statLosses">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Total Wagered:</span>
+            <span id="statWagered">$0.00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Biggest Win:</span>
+            <span id="statBigWin">$0.00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Win Rate:</span>
+            <span id="statWinRate">0%</span>
+          </div>
+        </div>
+        <button
+          onclick="document.getElementById('statsModal').classList.add('hidden')"
+          class="mt-6 w-full py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+
     <div
       class="flex flex-col justify-between min-h-screen relative w-full max-w-md mx-auto"
     >
@@ -47,41 +107,80 @@
       </div>
 
       <!-- Header -->
-      <div
+      <!-- In the header section -->
+      <header
         class="flex items-center bg-[#14191f] p-4 pb-2 justify-between relative z-10 border-b border-[#2b3540]/50"
       >
-        <button
-          class="text-white flex size-12 items-center hover:bg-[#2b3540]/50 rounded-lg transition-all duration-200"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="currentColor"
-            viewBox="0 0 256 256"
+        <!-- Left side elements container -->
+        <div class="flex items-center gap-4">
+          <!-- Stats button -->
+          <button
+            onclick="showStats()"
+            class="text-white flex size-12 items-center hover:bg-[#2b3540]/50 rounded-lg transition-all duration-200"
+            title="Show Stats"
           >
-            <path
-              d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"
-            ></path>
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              viewBox="0 0 256 256"
+            >
+              <path
+                d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"
+              ></path>
+            </svg>
+          </button>
 
+          <!-- Sound Toggle Button (moved to left) -->
+          <button
+            id="soundToggle"
+            class="text-white flex size-12 items-center hover:bg-[#2b3540]/50 rounded-lg transition-all duration-200"
+            title="Toggle Sound"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              viewBox="0 0 256 256"
+            >
+              <path
+                d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM32,96H72v64H32Z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Centered Game title -->
         <h2
-          class="text-lg font-bold text-center flex-1 pr-12 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500"
+          class="text-lg font-bold text-center left-1/2 transform -translate-x-1/2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500"
         >
           LAMBADA
         </h2>
 
-        <!-- Moved Balance here -->
-        <div class="hidden sm:flex flex-col items-end">
-          <div
-            id="balanceDisplay"
-            class="text-white text-center rounded-xl h-10 px-3 flex items-center justify-center bg-[#2b3540] text-sm font-medium border border-[#3a4753] shadow-sm"
-          >
-            $100.00
+        <!-- Right side elements container (only balance now) -->
+        <div class="flex items-center gap-2">
+          <!-- Mobile balance -->
+          <div class="flex sm:hidden">
+            <div
+              id="mobileBalance"
+              class="text-white text-sm px-2 py-1 rounded bg-[#2b3540]/50"
+            >
+              $100.00
+            </div>
+          </div>
+          <!-- Desktop balance -->
+          <div class="hidden sm:flex flex-col items-end">
+            <div
+              id="balanceDisplay"
+              class="text-white text-center rounded-xl h-10 px-3 flex items-center justify-center bg-[#2b3540] text-sm font-medium border border-[#3a4753] shadow-sm"
+            >
+              $100.00
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
       <!-- Result -->
       <div class="flex-grow flex items-center justify-center relative z-10">
@@ -100,7 +199,7 @@
         </div>
 
         <!-- History at top-right corner of this section -->
-        <div class="absolute top-0 right-0 px-4 w-16">
+        <div class="absolute top-0 right-0 w-16">
           <div
             id="history"
             class="flex flex-col items-center gap-3 py-4 relative"
@@ -117,7 +216,7 @@
               Balance
             </p>
             <div
-              id="balanceDisplay"
+              id="balanceDisplayMobile"
               class="text-white text-center rounded-xl h-14 flex items-center justify-center bg-[#2b3540] truncate px-2 border border-[#3a4753] shadow-sm font-medium"
             >
               $100.00
