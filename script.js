@@ -4,11 +4,133 @@ let history = [];
 let condition = null;
 let sliderValue = 50;
 let isAnimating = false;
+let confettiCanvas, particleCanvas, confettiCtx, particleCtx;
+
+// Initialize canvases
+function initCanvases() {
+  confettiCanvas = document.getElementById("confetti-canvas");
+  particleCanvas = document.getElementById("particle-canvas");
+
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  particleCanvas.width = window.innerWidth;
+  particleCanvas.height = window.innerHeight;
+
+  confettiCtx = confettiCanvas.getContext("2d");
+  particleCtx = particleCanvas.getContext("2d");
+}
+
+// Fireworks effect for wins
+function triggerConfetti() {
+  const count = 200;
+  const defaults = {
+    origin: { y: 0.7 },
+    spread: 60,
+    ticks: 100,
+    gravity: 1.5,
+    decay: 0.94,
+    startVelocity: 30,
+    colors: ["#3b82f6", "#8b5cf6", "#ec4899", "#10b981"],
+  };
+
+  function fire(particleRatio, opts) {
+    confetti({
+      ...defaults,
+      ...opts,
+      particleCount: Math.floor(count * particleRatio),
+      angle: 60,
+      scalar: 1.2,
+    });
+    confetti({
+      ...defaults,
+      ...opts,
+      particleCount: Math.floor(count * particleRatio),
+      angle: 120,
+      scalar: 1.2,
+    });
+  }
+
+  fire(0.25, {
+    spread: 26,
+    startVelocity: 55,
+  });
+  fire(0.2, {
+    spread: 60,
+  });
+  fire(0.35, {
+    spread: 100,
+    decay: 0.91,
+    scalar: 0.8,
+  });
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 25,
+    decay: 0.92,
+    scalar: 1.3,
+  });
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 45,
+  });
+}
+
+// Particle effect for losses
+function triggerParticles() {
+  const particles = [];
+  const particleCount = 100;
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      x: Math.random() * particleCanvas.width,
+      y: Math.random() * particleCanvas.height,
+      size: Math.random() * 5 + 2,
+      speedX: Math.random() * 6 - 3,
+      speedY: Math.random() * 6 - 3,
+      color: `rgba(239, 68, 68, ${Math.random() * 0.5 + 0.5})`,
+    });
+  }
+
+  function animateParticles() {
+    particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+
+    let aliveParticles = 0;
+
+    particles.forEach((particle) => {
+      particle.x += particle.speedX;
+      particle.y += particle.speedY;
+      particle.speedY += 0.1; // gravity
+
+      if (particle.y < particleCanvas.height) {
+        aliveParticles++;
+
+        particleCtx.beginPath();
+        particleCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        particleCtx.fillStyle = particle.color;
+        particleCtx.fill();
+      }
+    });
+
+    if (aliveParticles > 0) {
+      requestAnimationFrame(animateParticles);
+    }
+  }
+
+  animateParticles();
+}
 
 function updateBalanceDisplay() {
-  document.getElementById("balanceDisplay").textContent = `$${balance.toFixed(
-    2
-  )}`;
+  const balanceElements = document.querySelectorAll("#balanceDisplay");
+  balanceElements.forEach((el) => {
+    el.textContent = `$${balance.toFixed(2)}`;
+  });
+
+  // Pulse animation when balance updates
+  balanceElements.forEach((el) => {
+    el.classList.add("animate__animated", "animate__pulse");
+    setTimeout(() => {
+      el.classList.remove("animate__animated", "animate__pulse");
+    }, 1000);
+  });
 }
 
 function getRandomNumber() {
@@ -21,6 +143,14 @@ function adjustBet(delta) {
   value = Math.max(0.1, value + delta * 0.1);
   value = Math.round(value * 10) / 10; // ensure 1 decimal precision
   input.value = value.toFixed(1);
+
+  // Button press animation
+  const button =
+    delta > 0 ? input.nextElementSibling : input.previousElementSibling;
+  button.classList.add("animate__animated", "animate__pulse");
+  setTimeout(() => {
+    button.classList.remove("animate__animated", "animate__pulse");
+  }, 300);
 }
 
 function updateSliderValue(val) {
@@ -37,12 +167,39 @@ function setCondition(newCondition) {
 
   if (condition === "less") {
     document.getElementById("btnLess").classList.add("btn-selected");
+    document
+      .getElementById("btnLess")
+      .classList.add("animate__animated", "animate__pulse");
+    setTimeout(() => {
+      document
+        .getElementById("btnLess")
+        .classList.remove("animate__animated", "animate__pulse");
+    }, 500);
   } else {
     document.getElementById("btnMore").classList.add("btn-selected");
+    document
+      .getElementById("btnMore")
+      .classList.add("animate__animated", "animate__pulse");
+    setTimeout(() => {
+      document
+        .getElementById("btnMore")
+        .classList.remove("animate__animated", "animate__pulse");
+    }, 500);
   }
 
   updateMultiplier();
   document.getElementById("btnGuess").disabled = false;
+
+  // Button glow effect
+  const resultGlow = document.getElementById("result-glow");
+  resultGlow.style.background =
+    condition === "less"
+      ? "radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)"
+      : "radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)";
+  resultGlow.style.opacity = "0.5";
+  setTimeout(() => {
+    resultGlow.style.opacity = "0";
+  }, 1000);
 }
 
 function updateMultiplier() {
@@ -55,31 +212,61 @@ function updateMultiplier() {
   const rawMultiplier = 100 / chance;
   const adjusted = (rawMultiplier * (1 - HOUSE_EDGE)).toFixed(2);
   document.getElementById("multiplierDisplay").textContent = `${adjusted}x`;
+
+  // Color based on multiplier value
+  const multiplierElement = document.getElementById("multiplierDisplay");
+  multiplierElement.classList.remove(
+    "text-green-500",
+    "text-yellow-500",
+    "text-red-500"
+  );
+
+  if (adjusted >= 5) {
+    multiplierElement.classList.add("text-red-500");
+  } else if (adjusted >= 2) {
+    multiplierElement.classList.add("text-yellow-500");
+  } else {
+    multiplierElement.classList.add("text-green-500");
+  }
 }
 
 function showBetError() {
-  document
-    .getElementById("betWrapper")
-    .classList.add("border", "border-red-500");
+  const betWrapper = document.getElementById("betWrapper");
+  betWrapper.classList.add("border-red-500", "shake-animation");
+  setTimeout(() => {
+    betWrapper.classList.remove("shake-animation");
+  }, 500);
 }
 
 function hideBetError() {
-  document
-    .getElementById("betWrapper")
-    .classList.remove("border", "border-red-500");
+  document.getElementById("betWrapper").classList.remove("border-red-500");
 }
 
 function animateNumberCycle(finalNumber, callback) {
   const resultEl = document.getElementById("result");
+  const resultGlow = document.getElementById("result-glow");
   isAnimating = true;
   resultEl.textContent = "?";
-  resultEl.classList.remove("text-green-500", "text-red-600", "number-cycle");
+  resultEl.classList.remove(
+    "text-green-500",
+    "text-red-600",
+    "number-cycle",
+    "result-win",
+    "result-lose"
+  );
+  resultGlow.style.opacity = "0";
+
+  // Disable all buttons during animation
+  document.getElementById("btnGuess").disabled = true;
+  document.getElementById("btnLess").disabled = true;
+  document.getElementById("btnMore").disabled = true;
+  document.getElementById("slider").disabled = true;
 
   // Start with a few fast numbers
   let count = 0;
   const totalCycles = 15 + Math.floor(Math.random() * 10); // 15-24 cycles
   const startTime = Date.now();
-  const duration = 1500; // 1.5 seconds total
+  const duration = 1500 + Math.random() * 500; // 1.5-2 seconds total
 
   function updateNumber() {
     if (!isAnimating) return;
@@ -91,6 +278,10 @@ function animateNumberCycle(finalNumber, callback) {
       // Final number
       resultEl.textContent = finalNumber;
       resultEl.classList.add("number-cycle");
+
+      // Add glow effect based on result (will be set in callback)
+      resultGlow.style.opacity = "0.7";
+
       isAnimating = false;
       callback();
       return;
@@ -124,6 +315,7 @@ function animateNumberCycle(finalNumber, callback) {
       // Show the final number with animation
       resultEl.textContent = finalNumber;
       resultEl.classList.add("number-cycle");
+      resultGlow.style.opacity = "0.7";
       isAnimating = false;
       callback();
     }
@@ -141,7 +333,7 @@ function guessNumber() {
 
   if (betAmount > balance) {
     betAmount = balance;
-    betInput.value = balance;
+    betInput.value = balance.toFixed(1);
     showBetError();
     return;
   }
@@ -150,9 +342,20 @@ function guessNumber() {
 
   const result = getRandomNumber();
   const resultEl = document.getElementById("result");
+  const resultGlow = document.getElementById("result-glow");
 
   // Disable button during animation
   document.getElementById("btnGuess").disabled = true;
+
+  // Button press animation
+  document
+    .getElementById("btnGuess")
+    .classList.add("animate__animated", "animate__pulse");
+  setTimeout(() => {
+    document
+      .getElementById("btnGuess")
+      .classList.remove("animate__animated", "animate__pulse");
+  }, 300);
 
   animateNumberCycle(result, () => {
     // Animation complete - process the result
@@ -165,51 +368,124 @@ function guessNumber() {
 
     if (win) {
       balance += betAmount * (multiplier - 1);
-      resultEl.classList.add("text-green-500");
+      resultEl.classList.add("text-green-500", "result-win");
+      resultGlow.style.background =
+        "radial-gradient(circle, rgba(74, 222, 128, 0.5) 0%, transparent 70%)";
+      triggerConfetti();
     } else {
       balance -= betAmount;
-      resultEl.classList.add("text-red-600");
+      resultEl.classList.add("text-red-600", "result-lose");
+      resultGlow.style.background =
+        "radial-gradient(circle, rgba(239, 68, 68, 0.5) 0%, transparent 70%)";
+      triggerParticles();
     }
 
     updateBalanceDisplay();
 
-    // Re-enable button
+    // Re-enable buttons
     document.getElementById("btnGuess").disabled = false;
+    document.getElementById("btnLess").disabled = false;
+    document.getElementById("btnMore").disabled = false;
+    document.getElementById("slider").disabled = false;
 
     // Add to history
-    history.unshift(result);
+    history.unshift({ number: result, win });
+
     if (history.length > 7) history.pop();
-    updateHistory();
+    addToHistory({ number: result, win });
   });
+}
+function addToHistory({ number, win }) {
+  const container = document.getElementById("history");
+  const maxItems = 7;
+  const itemHeight = 48; // Height of each history item including gap
+
+  // Create new item
+  const entry = document.createElement("div");
+  entry.className =
+    "history-item rounded-full w-10 h-10 flex items-center justify-center font-bold text-white";
+  entry.textContent = number;
+
+  // Color based on result
+  if (win) {
+    entry.classList.add("bg-green-500/20", "border", "border-green-500/30");
+  } else {
+    entry.classList.add("bg-red-500/20", "border", "border-red-500/30");
+  }
+
+  // Insert new item at the top
+  container.insertBefore(entry, container.firstChild);
+
+  // Animate existing items down
+  const children = Array.from(container.children);
+  children.forEach((item, index) => {
+    if (index === 0) return; // Skip the new item
+
+    item.style.transition = "transform 300ms ease, opacity 300ms ease";
+    item.style.transform = `translateY(${itemHeight}px)`;
+
+    // Only fade out items that will be removed
+    if (index >= maxItems) {
+      item.style.opacity = "0";
+    } else {
+      item.style.opacity = `${1 - (index / maxItems) * 0.6}`;
+    }
+  });
+
+  // Remove excess items after they've animated out
+  setTimeout(() => {
+    const children = Array.from(container.children);
+    children.forEach((item, index) => {
+      if (index >= maxItems) {
+        // Only remove if it's fully out of view (opacity 0)
+        if (item.style.opacity === "0") {
+          container.removeChild(item);
+        }
+      } else {
+        // Reset styles for remaining items
+        item.style.transition = "";
+        item.style.transform = "";
+
+        // Adjust size based on position
+        item.classList.remove("text-3xl", "text-xl", "text-lg", "text-base");
+        if (index === 0) {
+          item.classList.add("text-3xl", "font-extrabold");
+        } else if (index === 1) {
+          item.classList.add("text-xl", "font-bold");
+        } else if (index === 2) {
+          item.classList.add("text-lg", "font-bold");
+        } else {
+          item.classList.add("text-base", "font-medium");
+        }
+      }
+    });
+  }, 300);
 }
 
 function updateHistory() {
   const container = document.getElementById("history");
   container.innerHTML = "";
-  const maxItems = 7;
 
-  history.forEach((num, index) => {
-    const div = document.createElement("div");
-    div.className = "flex justify-center p-2 items-center";
-
-    // Calculate progressive opacity for color
-    const brightness = 1 - (index / maxItems) * 0.6; // from 1 to 0.4 opacity
-    div.style.color = `rgba(255, 255, 255, ${brightness.toFixed(2)})`;
-
-    // Bigger text for the first item
-    if (index === 0) {
-      div.innerHTML = `<h2 class="text-3xl font-extrabold leading-tight">${num}</h2>`;
-    } else {
-      div.innerHTML = `<h2 class="text-base font-bold leading-tight">${num}</h2>`;
-    }
-
-    container.appendChild(div);
+  history.forEach((item, index) => {
+    addToHistory(item);
   });
 }
 
 window.onload = () => {
+  initCanvases();
   updateBalanceDisplay();
   updateSliderValue(sliderValue);
   updateMultiplier();
   document.getElementById("btnGuess").disabled = true;
+
+  // Add floating animation to the logo
+  document.querySelector("h2").classList.add("float-animation");
 };
+
+// Handle window resize
+window.addEventListener("resize", () => {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  particleCanvas.width = window.innerWidth;
+  particleCanvas.height = window.innerHeight;
+});
